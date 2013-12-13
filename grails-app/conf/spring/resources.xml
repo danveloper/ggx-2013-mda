@@ -1,0 +1,50 @@
+<beans:beans xmlns="http://www.springframework.org/schema/integration"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:beans="http://www.springframework.org/schema/beans"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+             http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+             http://www.springframework.org/schema/integration
+             http://www.springframework.org/schema/integration/spring-integration.xsd">
+
+    <!-- Pipeline Channel -->
+    <channel id="pipeline"/>
+
+    <!-- Pipeline Gateway -->
+    <gateway id="appPipeline"
+             default-request-channel="pipeline"
+             service-interface="app.AppPipeline"
+             default-reply-timeout="5000" />
+
+    <chain input-channel="pipeline">
+        <recipient-list-router>
+            <recipient channel="workflow-1" selector-expression="payload.class.simpleName == 'SearchRequest'" />
+            <recipient channel="workflow-2" selector-expression="payload.class.simpleName == 'BookingRequest'" />
+        </recipient-list-router>
+    </chain>
+
+    <channel id="workflow-1" />
+    <chain input-channel="workflow-1">
+        <recipient-list-router apply-sequence="true">
+            <recipient channel="search-channel" />
+            <recipient channel="rating-channel" />
+            <recipient channel="save-publishedroom-channel" />
+        </recipient-list-router>
+    </chain>
+
+    <channel id="search-channel" />
+    <service-activator input-channel="search-channel" ref="reservationService" method="doSearch" />
+
+    <channel id="rating-channel" />
+    <service-activator input-channel="rating-channel" ref="ratingService" method="doSomethingElse" />
+
+    <channel id="save-publishedroom-channel" />
+    <transformer input-channel="save-publishedroom-channel" ref="publishedRoomService" method="doSave" />
+
+    <channel id="workflow-2" />
+    <chain input-channel="workflow-2">
+        <recipient-list-router>
+            <recipient channel=""/>
+        </recipient-list-router>
+    </chain>
+    
+</beans:beans>
